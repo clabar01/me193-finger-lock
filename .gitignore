@@ -16,6 +16,7 @@ data/raw/*
 !data/raw/.gitkeep
 data/processed/*
 !data/processed/.gitkeep
+*.zip
 
 # Model weights: add an exception for a final model the board needs.
 *.pt

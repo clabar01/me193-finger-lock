@@ -1,0 +1,8 @@
+# Mac training and capture environment. On the Uno Q, use opencv-python-headless and numpy.
+matplotlib==3.11.2
+numpy==2.5.4
+opencv-python==5.0.0.93
+scikit-learn==1.9.1
+torch==2.15.0
+torchvision==0.29.2
+pyobjc-framework-AVFoundation==13.0; sys_platform == "darwin"

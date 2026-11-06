@@ -9,12 +9,39 @@ no camera or model yet.
 | Folder | Contents |
 | --- | --- |
 | `board/` | App Lab app `me193_lock` (`app.yaml`, `sketch/`, `python/`) and `deploy_board.sh` |
-| `capture/` | Data capture scripts |
-| `data/` | `raw/` and `processed/` (not committed) |
+| `capture/` | Webcam selection, ROI calibration, image capture, contact sheets |
+| `common/` | `preprocess.py`, the one preprocessing path, and `camera.py` |
+| `config/` | Saved camera choice and ROI |
+| `data/` | See [data/README.md](data/README.md); images are not committed |
 | `training/` | Model training |
 | `models/` | Trained models |
 | `part1_v_fit/` | Part 1 V-data fit |
 | `docs/` | Report notes and figures |
+
+## Setup
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+## Capture
+
+Use the external USB webcam only.
+
+```bash
+python capture/list_cameras.py     # choose the webcam
+python capture/calibrate_roi.py    # mark the red square
+python capture/capture.py          # save labeled crops
+python capture/make_grid.py --person <name>   # check what was saved
+```
+
+## Tests
+
+```bash
+python -m unittest discover tests
+```
 
 ## Wiring
 
