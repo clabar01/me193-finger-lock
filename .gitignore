@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.ipynb_checkpoints/
+
+# macOS and editors
+.DS_Store
+.vscode/
+
+# Arduino build output
+build/
+
+# Raw and processed data stay local.
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# Model weights: add an exception for a final model the board needs.
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.tflite
