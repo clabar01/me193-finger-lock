@@ -45,6 +45,10 @@ python training/network_walkthrough.py    # stop-motion frames of one hand
 python capture/live_test.py               # live webcam test with the ONNX model
 ```
 
+In the live test, B takes a snapshot of the empty square (the lock's button will do
+this). While the square matches the snapshot (difference below the threshold, default
+6, adjust with + and -), the answer is 0 whatever the model says. See `common/no_hand.py`.
+
 Outputs: `models/finger_cnn.pt`, `models/finger_cnn.onnx`, `models/finger_cnn_metrics.json`,
 and figures in `docs/figures/`. `data/exclude.txt` lists mislabeled frames that training skips.
 
