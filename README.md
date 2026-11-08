@@ -3,8 +3,8 @@
 A safe that opens when the camera sees the right finger count, running on an
 Arduino UNO Q (board name: AirFour).
 
-Current state: hardware smoke test only (button, servo, onboard LEDs). There is
-no camera or model yet.
+The Mac runs the webcam, the CNN, the no-hand check and the lock policy; AirFour
+(app `me193_lock`) runs the button, servo, LED matrix and RGB LEDs. They talk over MQTT.
 
 | Folder | Contents |
 | --- | --- |
@@ -51,6 +51,28 @@ this). While the square matches the snapshot (difference below the threshold, de
 
 Outputs: `models/finger_cnn.pt`, `models/finger_cnn.onnx`, `models/finger_cnn_metrics.json`,
 and figures in `docs/figures/`. `data/exclude.txt` lists mislabeled frames that training skips.
+
+## The lock
+
+```bash
+python lock/lock_app.py            # first run creates config/lock.json (code + signing secret)
+# set "code" in config/lock.json (3 digits, 1-5), then put the secret on the board:
+BOARD=arduino@airfour.local board/deploy_board.sh --sketch
+python lock/lock_app.py            # B = button (backup), +/- = no-hand threshold, Q = quit
+python lock/fake_board.py          # optional: stand-in for AirFour (Enter = button)
+```
+
+Press the arcade button with the square empty (that frame is the no-hand snapshot), then
+show the digits with a closed fist between them. An empty square is "no hand": it pauses
+reading but does not separate digits. Rules are in
+`common/lock_policy.py`; settings (frames, confidence, timeouts) in `config/lock.json`;
+servo angles and `DEBUG` at the top of `board/sketch/sketch.ino`. Attempts are logged
+to `logs/lock_attempts.jsonl`. `config/lock.json`, the board's `lock_secret.txt` and
+`logs/` are not in git: they hold the code, the secret and the digits entered.
+
+MQTT: `broker.hivemq.com:1883`, topics `ME193/ceci/lock/{button,cmd,board}`. The broker is
+public, so commands are signed (HMAC-SHA256) and time-stamped; the board rejects forged,
+replayed and stale ones (see `board/python/lock_protocol.py`). The code never leaves the Mac.
 
 ## Tests
 

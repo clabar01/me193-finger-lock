@@ -27,3 +27,8 @@ data/processed/*
 # The board loads this one.
 !models/finger_cnn.onnx
 ~$*
+
+# Lock secrets and logs: the code, the signing secret, and attempts (which show digits).
+config/lock.json
+board/python/lock_secret.txt
+logs/

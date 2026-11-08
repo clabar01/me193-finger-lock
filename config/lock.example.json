@@ -1,0 +1,12 @@
+{
+  "code": [1, 2, 3],
+  "stable_frames": 10,
+  "min_confidence": 0.8,
+  "timeout_s": 10,
+  "max_wrong": 3,
+  "lockout_s": 30,
+  "relock_s": 10,
+  "empty_threshold": 6.0,
+  "send_digits": false,
+  "secret": "run lock/lock_app.py once: it replaces this with a random secret"
+}
