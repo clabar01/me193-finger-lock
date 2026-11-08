@@ -24,3 +24,4 @@ data/processed/*
 *.ckpt
 *.onnx
 *.tflite
+~$*
