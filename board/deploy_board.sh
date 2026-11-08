@@ -13,6 +13,7 @@
 # A ROI calibrated on the board (data/roi.json) is kept; config/roi.json is only
 # the starting point. This does not change the board's default app. 'app start'
 # fails with 'app "X" is running' while another app runs: stop that app first.
+# Sounds play on a Bluetooth speaker once board/speaker/pair_speaker.sh has paired one.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -34,12 +35,13 @@ BOARD="${BOARD:-arduino@airfour.local}"
 APP="ArduinoApps/me193_lock"
 
 echo "deploying to $BOARD:$APP in $MODE mode"
-ssh "$BOARD" "mkdir -p $APP/python/common $APP/python/model $APP/assets/libs $APP/data $APP/logs"
+ssh "$BOARD" "mkdir -p $APP/python/common $APP/python/model $APP/python/sounds $APP/assets/libs $APP/data $APP/logs"
 scp -q board/app.yaml "$BOARD:$APP/"
 scp -q board/python/*.py board/python/requirements.txt "$BOARD:$APP/python/"
 scp -q common/__init__.py common/preprocess.py common/no_hand.py common/lock_policy.py \
   common/lock_runtime.py common/red_square.py common/draw.py "$BOARD:$APP/python/common/"
 scp -q models/finger_cnn.onnx "$BOARD:$APP/python/model/"
+scp -q board/python/sounds/*.wav "$BOARD:$APP/python/sounds/"
 scp -q config/roi.json "$BOARD:$APP/python/roi_default.json"
 scp -q board/assets/index.html board/assets/app.js board/assets/style.css "$BOARD:$APP/assets/"
 scp -q board/assets/libs/socket.io.min.js "$BOARD:$APP/assets/libs/"

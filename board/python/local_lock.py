@@ -29,6 +29,7 @@ from arduino.app_bricks.web_ui import WebUI
 from arduino.app_utils import App, Bridge, Logger
 
 from board_camera import CameraError, open_camera
+from sounds import Sounds
 from common.lock_policy import LockPolicy, READING, frame_reading
 from common.lock_runtime import AttemptLog, STATE_COLORS, handle_events, policy_config, reading_text, softmax
 from common.no_hand import EmptySquareCheck
@@ -51,10 +52,13 @@ STREAM_FPS = 8
 EVAL_TIMEOUT_S = 10.0
 
 logger = Logger("me193_lock")
+sounds = None  # started in run(); see sounds.py
 
 
 def bridge_send(cmd, a=0, b=0):
     Bridge.call("lock_cmd", cmd, int(a), int(b))
+    if sounds:  # after the sketch has the command, so sound never delays the servo or displays
+        sounds.on_command(cmd, a, b)
 
 
 def hex_color(bgr):
@@ -297,6 +301,8 @@ ui = WebUI()
 
 
 def run():
+    global sounds
+    sounds = Sounds(log=logger.warning)
     try:
         lock = LocalLock()
     except CameraError as e:

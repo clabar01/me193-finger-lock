@@ -1,0 +1,11 @@
+[Unit]
+Description=Keep the lock's Bluetooth speaker connected and awake (ME193 finger lock)
+After=pipewire.service wireplumber.service
+
+[Service]
+ExecStart=%h/.local/bin/airfour-speaker.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target

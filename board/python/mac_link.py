@@ -18,8 +18,10 @@ import paho.mqtt.client as mqtt
 from arduino.app_utils import App, Bridge, Logger
 
 import lock_protocol as proto
+from sounds import Sounds
 
 logger = Logger("me193_lock")
+sounds = Sounds(log=logger.warning)  # Bluetooth speaker; never blocks, see sounds.py
 TOPICS = proto.topics()
 SECRET_PATH = Path(__file__).with_name("lock_secret.txt")
 
@@ -52,6 +54,7 @@ def on_message(client, userdata, msg):
     lag = proto.now_ms() - cmd["ts_ms"]
     logger.info(f"cmd {cmd['cmd']} a={cmd['a']} b={cmd['b']} ({lag} ms after the Mac sent it)")
     Bridge.call("lock_cmd", cmd["cmd"], cmd["a"], cmd["b"])
+    sounds.on_command(cmd["cmd"])
 
 
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=f"airfour-lock-{proto.now_ms() % 100000}")
