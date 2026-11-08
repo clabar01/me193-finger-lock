@@ -19,7 +19,7 @@ import list_cameras  # noqa: E402
 import make_grid  # noqa: E402
 import numpy as np  # noqa: E402
 from common import camera as camera_module  # noqa: E402
-from common.preprocess import crop_and_resize, load_roi, preprocess, roi_to_pixels  # noqa: E402
+from common.preprocess import MODES, crop_and_resize, load_roi, preprocess, roi_to_pixels  # noqa: E402
 
 ROI = {"x": 0.25, "y": 0.125, "w": 0.5, "h": 2 / 3, "frame_width": 640, "frame_height": 480}
 
@@ -70,6 +70,25 @@ class PreprocessTests(unittest.TestCase):
         self.assertEqual(x.dtype, np.float32)
         self.assertGreaterEqual(x.min(), -1)
         self.assertLessEqual(x.max(), 1)
+        for mode, channels in MODES.items():
+            self.assertEqual(preprocess(make_frame(), ROI, mode).shape, (channels, 128, 128))
+        with self.assertRaises(ValueError):
+            preprocess(make_frame(), ROI, "rgb")
+
+    def test_per_image_modes_cancel_lighting(self):
+        crop = crop_and_resize(make_frame(), ROI).astype(np.float32)
+        darker = np.clip(crop * 0.6 + 10, 0, 255).astype(np.uint8)
+        warmer = np.clip(crop * (0.8, 1.0, 1.25), 0, 255).astype(np.uint8)  # BGR gains: a white-balance shift
+        crop = crop.astype(np.uint8)
+        for mode in ("image", "channel", "gray"):
+            np.testing.assert_allclose(preprocess(darker, mode=mode), preprocess(crop, mode=mode), atol=0.08)
+        np.testing.assert_allclose(preprocess(warmer, mode="channel"), preprocess(crop, mode="channel"), atol=0.08)
+        self.assertGreater(np.abs(preprocess(darker) - preprocess(crop)).max(), 0.2)  # fixed mode does not
+
+    def test_flat_image_stays_finite(self):
+        flat = np.full((128, 128, 3), 200, np.uint8)
+        for mode in MODES:
+            self.assertTrue(np.isfinite(preprocess(flat, mode=mode)).all())
 
     def test_channels_are_rgb(self):
         x = preprocess(make_frame(), ROI)
@@ -80,7 +99,8 @@ class PreprocessTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             path = f"{d}/crop.png"
             cv2.imwrite(path, crop_and_resize(frame, ROI))
-            np.testing.assert_array_equal(preprocess(cv2.imread(path)), preprocess(frame, ROI))
+            for mode in MODES:
+                np.testing.assert_array_equal(preprocess(cv2.imread(path), mode=mode), preprocess(frame, ROI, mode))
 
     def test_roi_scales_with_frame(self):
         self.assertEqual(roi_to_pixels(ROI, 640, 480), (160, 60, 480, 380))

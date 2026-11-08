@@ -24,4 +24,6 @@ data/processed/*
 *.ckpt
 *.onnx
 *.tflite
+# The board loads this one.
+!models/finger_cnn.onnx
 ~$*

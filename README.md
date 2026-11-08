@@ -37,6 +37,17 @@ python capture/capture.py          # save labeled crops
 python capture/make_grid.py --person <name>   # check what was saved
 ```
 
+## Training
+
+```bash
+python training/train.py                  # model, ONNX export, metrics, figures
+python training/network_walkthrough.py    # stop-motion frames of one hand
+python capture/live_test.py               # live webcam test with the ONNX model
+```
+
+Outputs: `models/finger_cnn.pt`, `models/finger_cnn.onnx`, `models/finger_cnn_metrics.json`,
+and figures in `docs/figures/`. `data/exclude.txt` lists mislabeled frames that training skips.
+
 ## Tests
 
 ```bash

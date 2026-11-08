@@ -1,0 +1,60 @@
+# Images to leave out of training and testing, one path per line relative to data/raw/.
+# Text after '#' is a comment. The files themselves are kept.
+ceci/1/ceci_R_s1_20261106-174446-420.png  # a fist, saved before the 1-finger take started
+ceci/2/ceci_R_s1_20261106-174548-790.png  # fingers half curled, between poses
+ceci/4/ceci_R_s1_20261106-174739-930.png  # empty square
+ceci/4/ceci_R_s1_20261106-174740-162.png  # empty square
+ceci/4/ceci_R_s1_20261106-174740-391.png  # hand entering the frame, blurred
+
+# s1, label 1: only the edge of the hand at the top, no finger in view
+ceci/1/ceci_R_s1_20261106-174509-712.png  # no finger visible
+ceci/1/ceci_R_s1_20261106-174509-944.png  # no finger visible
+
+# s1, label 4: a fingertip touches or leaves the edge of the crop, so fewer than 4 fingers are fully
+# visible and the image looks like a 3. Reviewed by eye on 2026-11-08.
+ceci/4/ceci_R_s1_20261106-174740-622.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174740-853.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174741-083.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174741-316.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174741-545.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174741-777.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174742-009.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174742-238.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174742-471.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174742-701.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174742-933.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174744-319.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174744-548.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174744-781.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174745-474.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174745-703.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174750-524.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174750-752.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174754-911.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174755-141.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174755-374.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174756-065.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174756-298.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174800-619.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174800-850.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174801-083.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174803-094.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174804-019.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174809-530.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174809-760.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174809-992.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174810-222.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174810-455.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174812-301.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174812-533.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174812-763.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174813-691.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174813-953.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174814-414.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174819-662.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174821-278.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174821-509.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174821-741.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174821-971.png  # top finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174822-666.png  # bottom finger cut off at the edge
+ceci/4/ceci_R_s1_20261106-174825-702.png  # top finger cut off at the edge

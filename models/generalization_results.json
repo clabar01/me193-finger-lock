@@ -1,0 +1,470 @@
+{
+  "setup": {
+    "mode": "fixed",
+    "augment": "strong",
+    "source": "fixed_strong"
+  },
+  "seeds": 3,
+  "main_person": "ceci",
+  "others": [
+    "paige"
+  ],
+  "new_person": {
+    "title": "Train ceci, test paige (never seen)",
+    "mean_accuracy": 0.4777777777777778,
+    "accuracies": [
+      0.5125,
+      0.4666666666666667,
+      0.45416666666666666
+    ],
+    "per_class": {
+      "0": 0.9,
+      "1": 0.7583,
+      "2": 0.3583,
+      "3": 0.2083,
+      "4": 0.275,
+      "5": 0.3667
+    },
+    "confusion_sum": [
+      [
+        108,
+        7,
+        3,
+        0,
+        1,
+        1
+      ],
+      [
+        21,
+        91,
+        8,
+        0,
+        0,
+        0
+      ],
+      [
+        4,
+        69,
+        43,
+        3,
+        1,
+        0
+      ],
+      [
+        6,
+        30,
+        31,
+        25,
+        22,
+        6
+      ],
+      [
+        1,
+        20,
+        15,
+        40,
+        33,
+        11
+      ],
+      [
+        0,
+        5,
+        0,
+        49,
+        22,
+        44
+      ]
+    ],
+    "top_confusions": [
+      "true 2 -> predicted 1: 69",
+      "true 5 -> predicted 3: 49",
+      "true 4 -> predicted 3: 40",
+      "true 3 -> predicted 2: 31",
+      "true 3 -> predicted 1: 30",
+      "true 5 -> predicted 4: 22"
+    ],
+    "n_train": 1220,
+    "n_val": 227,
+    "n_test": 240,
+    "test_counts": [
+      40,
+      40,
+      40,
+      40,
+      40,
+      40
+    ],
+    "figures": [
+      "new_person_train-ceci_test-paige_confusion.png",
+      "new_person_train-ceci_test-paige_misclassified.png"
+    ]
+  },
+  "add_person": {
+    "s1": {
+      "without": {
+        "title": "Train ceci s2, test ceci s1",
+        "mean_accuracy": 0.5158384190642255,
+        "accuracies": [
+          0.5858761987794245,
+          0.44115082824760243,
+          0.5204882301656495
+        ],
+        "per_class": {
+          "0": 0.905,
+          "1": 0.6024,
+          "2": 0.2111,
+          "3": 0.255,
+          "4": 0.8521,
+          "5": 0.3517
+        },
+        "confusion_sum": [
+          [
+            543,
+            22,
+            15,
+            8,
+            9,
+            3
+          ],
+          [
+            97,
+            356,
+            119,
+            0,
+            7,
+            12
+          ],
+          [
+            70,
+            94,
+            126,
+            71,
+            171,
+            65
+          ],
+          [
+            12,
+            26,
+            38,
+            153,
+            312,
+            59
+          ],
+          [
+            17,
+            0,
+            6,
+            22,
+            386,
+            22
+          ],
+          [
+            3,
+            0,
+            0,
+            6,
+            380,
+            211
+          ]
+        ],
+        "top_confusions": [
+          "true 5 -> predicted 4: 380",
+          "true 3 -> predicted 4: 312",
+          "true 2 -> predicted 4: 171",
+          "true 1 -> predicted 2: 119",
+          "true 1 -> predicted 0: 97",
+          "true 2 -> predicted 1: 94"
+        ],
+        "n_train": 276,
+        "n_val": 54,
+        "n_test": 1147,
+        "test_counts": [
+          200,
+          197,
+          199,
+          200,
+          151,
+          200
+        ],
+        "figures": [
+          "add_person_test-ceci-s1_without-paige_confusion.png",
+          "add_person_test-ceci-s1_without-paige_misclassified.png"
+        ]
+      },
+      "with": {
+        "title": "Train ceci s2 + paige, test ceci s1",
+        "mean_accuracy": 0.48764893926184244,
+        "accuracies": [
+          0.5649520488230165,
+          0.3870967741935484,
+          0.5108979947689625
+        ],
+        "per_class": {
+          "0": 0.9267,
+          "1": 0.4332,
+          "2": 0.1189,
+          "3": 0.11,
+          "4": 0.6049,
+          "5": 0.7583
+        },
+        "confusion_sum": [
+          [
+            556,
+            9,
+            5,
+            4,
+            1,
+            25
+          ],
+          [
+            97,
+            256,
+            85,
+            72,
+            16,
+            65
+          ],
+          [
+            61,
+            53,
+            71,
+            157,
+            66,
+            189
+          ],
+          [
+            34,
+            8,
+            13,
+            66,
+            233,
+            246
+          ],
+          [
+            23,
+            0,
+            0,
+            6,
+            274,
+            150
+          ],
+          [
+            28,
+            0,
+            0,
+            2,
+            115,
+            455
+          ]
+        ],
+        "top_confusions": [
+          "true 3 -> predicted 5: 246",
+          "true 3 -> predicted 4: 233",
+          "true 2 -> predicted 5: 189",
+          "true 2 -> predicted 3: 157",
+          "true 4 -> predicted 5: 150",
+          "true 5 -> predicted 4: 115"
+        ],
+        "n_train": 450,
+        "n_val": 90,
+        "n_test": 1147,
+        "test_counts": [
+          200,
+          197,
+          199,
+          200,
+          151,
+          200
+        ],
+        "figures": [
+          "add_person_test-ceci-s1_with-paige_confusion.png",
+          "add_person_test-ceci-s1_with-paige_misclassified.png"
+        ]
+      },
+      "change": -0.02818947980238301
+    },
+    "s2": {
+      "without": {
+        "title": "Train ceci s1, test ceci s2",
+        "mean_accuracy": 0.5777777777777778,
+        "accuracies": [
+          0.6722222222222223,
+          0.49722222222222223,
+          0.5638888888888889
+        ],
+        "per_class": {
+          "0": 0.9444,
+          "1": 0.5889,
+          "2": 0.3333,
+          "3": 0.4278,
+          "4": 0.3056,
+          "5": 0.8667
+        },
+        "confusion_sum": [
+          [
+            170,
+            4,
+            1,
+            0,
+            0,
+            5
+          ],
+          [
+            0,
+            106,
+            39,
+            11,
+            0,
+            24
+          ],
+          [
+            1,
+            43,
+            60,
+            53,
+            8,
+            15
+          ],
+          [
+            0,
+            1,
+            46,
+            77,
+            17,
+            39
+          ],
+          [
+            0,
+            0,
+            0,
+            44,
+            55,
+            81
+          ],
+          [
+            0,
+            0,
+            1,
+            8,
+            15,
+            156
+          ]
+        ],
+        "top_confusions": [
+          "true 4 -> predicted 5: 81",
+          "true 2 -> predicted 3: 53",
+          "true 3 -> predicted 2: 46",
+          "true 4 -> predicted 3: 44",
+          "true 2 -> predicted 1: 43",
+          "true 3 -> predicted 5: 39"
+        ],
+        "n_train": 944,
+        "n_val": 173,
+        "n_test": 360,
+        "test_counts": [
+          60,
+          60,
+          60,
+          60,
+          60,
+          60
+        ],
+        "figures": [
+          "add_person_test-ceci-s2_without-paige_confusion.png",
+          "add_person_test-ceci-s2_without-paige_misclassified.png"
+        ]
+      },
+      "with": {
+        "title": "Train ceci s1 + paige, test ceci s2",
+        "mean_accuracy": 0.5472222222222222,
+        "accuracies": [
+          0.49722222222222223,
+          0.6027777777777777,
+          0.5416666666666666
+        ],
+        "per_class": {
+          "0": 0.7611,
+          "1": 0.8444,
+          "2": 0.05,
+          "3": 0.1778,
+          "4": 0.7278,
+          "5": 0.7222
+        },
+        "confusion_sum": [
+          [
+            137,
+            10,
+            0,
+            0,
+            3,
+            30
+          ],
+          [
+            0,
+            152,
+            14,
+            10,
+            0,
+            4
+          ],
+          [
+            1,
+            112,
+            9,
+            53,
+            4,
+            1
+          ],
+          [
+            0,
+            3,
+            6,
+            32,
+            97,
+            42
+          ],
+          [
+            0,
+            0,
+            0,
+            1,
+            131,
+            48
+          ],
+          [
+            0,
+            0,
+            0,
+            1,
+            49,
+            130
+          ]
+        ],
+        "top_confusions": [
+          "true 2 -> predicted 1: 112",
+          "true 3 -> predicted 4: 97",
+          "true 2 -> predicted 3: 53",
+          "true 5 -> predicted 4: 49",
+          "true 4 -> predicted 5: 48",
+          "true 3 -> predicted 5: 42"
+        ],
+        "n_train": 1118,
+        "n_val": 209,
+        "n_test": 360,
+        "test_counts": [
+          60,
+          60,
+          60,
+          60,
+          60,
+          60
+        ],
+        "figures": [
+          "add_person_test-ceci-s2_with-paige_confusion.png",
+          "add_person_test-ceci-s2_with-paige_misclassified.png"
+        ]
+      },
+      "change": -0.03055555555555567
+    }
+  }
+}
