@@ -52,6 +52,20 @@ this). While the square matches the snapshot (difference below the threshold, de
 Outputs: `models/finger_cnn.pt`, `models/finger_cnn.onnx`, `models/finger_cnn_metrics.json`,
 and figures in `docs/figures/`. `data/exclude.txt` lists mislabeled frames that training skips.
 
+## The lock on AirFour alone (no Mac)
+
+```bash
+BOARD=arduino@airfour.local board/deploy_board.sh --mode local   # add --sketch if the sketch changed
+```
+
+With the webcam on AirFour's USB-C hub, the board runs the camera, the ONNX model, the
+no-hand check and the policy itself (`board/python/local_lock.py`) and drives the sketch
+through the Bridge; it needs no Mac and no internet. Web page: `http://<board IP>:7000`
+(camera, prediction, state, timing, a backup button, **Calibrate ROI**, and a live accuracy
+test logged to `logs/live_eval.jsonl` on the board). After moving the camera or the square,
+empty the square and press Calibrate ROI. `--mode mac` switches back to the Mac version.
+`lock/benchmark.py` times the per-frame work on either machine.
+
 ## The lock
 
 ```bash

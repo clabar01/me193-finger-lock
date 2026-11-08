@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AirFour finger lock</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>AirFour finger lock</h1>
+    <span id="link" class="pill">connecting</span>
+  </header>
+  <main>
+    <section class="camera">
+      <img id="stream" src="/stream" alt="live camera with the ROI box">
+      <p class="note">Box color: gray locked, blue reading, green unlocked, red lockout.</p>
+    </section>
+    <section class="panel">
+      <div id="state" class="state">-</div>
+      <div id="slots" class="slots">_ _ _</div>
+      <div id="hint" class="hint"></div>
+      <div id="reading" class="reading">-</div>
+      <div class="bar"><div id="bar-fill"></div></div>
+      <div id="stability" class="small">-</div>
+      <dl>
+        <dt>No-hand difference</dt><dd id="diff">-</dd>
+        <dt>Wrong in a row</dt><dd id="wrong">-</dd>
+        <dt>Frames per second</dt><dd id="fps">-</dd>
+        <dt>Model time per frame</dt><dd id="infer">-</dd>
+        <dt>All processing per frame</dt><dd id="process">-</dd>
+        <dt>CPU (this app / whole board)</dt><dd id="cpu">-</dd>
+        <dt>Memory (this app)</dt><dd id="mem">-</dd>
+      </dl>
+      <div class="buttons">
+        <button id="press">Button (backup)</button>
+        <button id="calibrate" title="Square must be empty and fully in view">Calibrate ROI</button>
+      </div>
+      <p id="message" class="small"></p>
+    </section>
+    <section class="eval">
+      <h2>Live accuracy test</h2>
+      <p class="small">Click the number you will show (0 = fist), then show it. The next stable
+        reading is recorded; 10 s with no stable reading counts as a miss.</p>
+      <div id="eval-buttons" class="buttons"></div>
+      <p id="eval-expected" class="small"></p>
+      <table>
+        <thead><tr><th>Shown</th><th>Trials</th><th>Correct</th><th>Accuracy</th></tr></thead>
+        <tbody id="eval-table"></tbody>
+        <tfoot><tr><th>All</th><td id="eval-n">0</td><td id="eval-c">0</td><td id="eval-acc">-</td></tr></tfoot>
+      </table>
+      <p class="small" id="eval-last"></p>
+      <button id="eval-reset">Clear results</button>
+    </section>
+  </main>
+  <script src="libs/socket.io.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
