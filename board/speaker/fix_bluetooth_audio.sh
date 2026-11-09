@@ -32,9 +32,12 @@ EOF
 echo "[1/3] lightdm: Bluetooth audio off (enter the board password for sudo)"
 ssh -t "$BOARD" 'sudo bash /tmp/lightdm_no_bluez.sh; rm -f /tmp/lightdm_no_bluez.sh'
 
+scp -q "$(dirname "$0")/81-bluez-no-suspend.conf" "$BOARD:.config/wireplumber/wireplumber.conf.d/" 2>/dev/null ||
+  { ssh "$BOARD" 'mkdir -p ~/.config/wireplumber/wireplumber.conf.d' &&
+    scp -q "$(dirname "$0")/81-bluez-no-suspend.conf" "$BOARD:.config/wireplumber/wireplumber.conf.d/"; }
 ssh "$BOARD" bash -s <<'EOF'
 set -euo pipefail
-echo "[2/3] arduino: Bluetooth audio on"
+echo "[2/3] arduino: Bluetooth audio on (and never suspended when idle)"
 mkdir -p ~/.config/wireplumber/wireplumber.conf.d
 cat > ~/.config/wireplumber/wireplumber.conf.d/80-bluez-headless.conf <<'CONF'
 # AirFour runs headless: the active seat belongs to the lightdm login screen, so by default

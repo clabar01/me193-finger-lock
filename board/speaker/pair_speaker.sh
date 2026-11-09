@@ -12,7 +12,8 @@
 #   4. saves the new address in ~/ArduinoApps/me193_lock/data/speaker.json (the lock app
 #      and the reconnect service play to it), and installs and restarts
 #      airfour-speaker.service (reconnect + keep awake),
-#   5. makes it the default audio output and plays "Access granted" on it.
+#   5. keeps Bluetooth outputs from suspending when idle (81-bluez-no-suspend.conf), makes it
+#      the default audio output and plays "Access granted" on it.
 # Trusted + the service = it reconnects after reboots without running this again.
 # If it never shows up as an audio output, run board/speaker/fix_bluetooth_audio.sh once.
 set -euo pipefail
@@ -23,6 +24,7 @@ BOARD="${BOARD:-arduino@airfour.local}"
 
 scp -q airfour-speaker.sh "$BOARD:/tmp/airfour-speaker.sh"
 scp -q airfour-speaker.service "$BOARD:/tmp/airfour-speaker.service"
+scp -q 81-bluez-no-suspend.conf "$BOARD:/tmp/81-bluez-no-suspend.conf"
 ssh "$BOARD" "bash -s -- $(printf %q "$NAME")" <<'EOF'
 set -euo pipefail
 NAME="$1"
@@ -65,6 +67,17 @@ install -m 644 /tmp/airfour-speaker.service ~/.config/systemd/user/airfour-speak
 systemctl --user daemon-reload
 systemctl --user enable airfour-speaker.service >/dev/null 2>&1
 systemctl --user restart airfour-speaker.service
+
+# Keep the Bluetooth output from suspending when idle (81-bluez-no-suspend.conf): a suspended
+# output closes the stream, and the speaker drops the start of the next sound (the first beep).
+WPCONF=~/.config/wireplumber/wireplumber.conf.d
+mkdir -p "$WPCONF"
+if ! cmp -s /tmp/81-bluez-no-suspend.conf "$WPCONF/81-bluez-no-suspend.conf"; then
+  install -m 644 /tmp/81-bluez-no-suspend.conf "$WPCONF/81-bluez-no-suspend.conf"
+  bluetoothctl disconnect "$MAC" >/dev/null 2>&1 || true
+  systemctl --user restart wireplumber
+  sleep 4
+fi
 
 bluetoothctl --timeout 15 connect "$MAC" >/dev/null 2>&1 || true
 bluetoothctl info "$MAC" | grep -E "Name|Paired|Trusted|Connected"
