@@ -15,7 +15,7 @@ import lock_protocol as proto  # noqa: E402
 from common.lock_policy import LockPolicy, PolicyConfig  # noqa: E402
 
 SECRET = "ab" * 32
-CONFIG = {"send_digits": False, "relock_s": 10, "max_wrong": 3}
+CONFIG = {"send_digits": False, "max_wrong": 3}
 
 
 class FakeLink:
@@ -67,7 +67,7 @@ class AppTests(unittest.TestCase):
     def test_correct_code_sends_armed_digits_unlock(self):
         self.enter([2, 4, 1])
         self.assertEqual(self.link.sent, [("armed", 0, 0), ("digit", 1, 0), ("digit", 2, 0), ("digit", 3, 0),
-                                          ("unlock", 10, 0)])
+                                          ("unlock", 0, 0)])
         self.assertEqual(self.link.rejected, [])  # the board would accept every one, in order
         entry = self.log_entries()[0]
         self.assertEqual((entry["result"], entry["digits"], entry["source"]), ("unlock", [2, 4, 1], "board"))

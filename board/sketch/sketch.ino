@@ -1,6 +1,7 @@
 // ME193 Finger Lock (AirFour): button, servo latch, LED matrix and onboard RGB LEDs.
-// The Mac reads the fingers and runs the lock policy; this sketch only shows
-// what it is told and reports the button. Everything is millis()-based: there
+// The app (python/local_lock.py on AirFour, or lock/lock_app.py on the Mac) reads the
+// fingers and runs the lock policy; this sketch only shows what it is told and reports
+// the button. Everything is millis()-based: there
 // is no delay() in the loop, so a button press or a command is never missed.
 //
 // Wiring:
@@ -8,12 +9,13 @@
 //   Arcade button microswitch   -> NO to D2, COM to GND (internal pull-up, pressed = LOW)
 //   Onboard RGB LEDs LED3 and LED4 (active low: LOW = on)
 //
-// Links (via the Python side, python/main.py, which talks MQTT to the Mac):
+// Links (via the Python side, python/main.py: local mode, or MQTT to the Mac):
 //   Bridge.notify("button", ms)          arcade button pressed
 //   Bridge.notify("lock_state", name)    locked / reading / unlocked / denied / lockout
 //   Bridge.notify("lock_status", text)   log lines (also printed to Monitor as '#' lines)
-//   Bridge.provide("lock_cmd", cmd, a, b)  commands from the Mac (see python/lock_protocol.py):
-//       armed | digit a=slot b=value | unlock a=seconds | deny | timeout | lockout a=seconds | locked
+//   Bridge.provide("lock_cmd", cmd, a, b)  commands from the app (see python/lock_protocol.py):
+//       armed | digit a=slot b=value | unlock | deny | timeout | lockout a=seconds | locked
+//       alive (every 5 s from the app; keeps the failsafe below from firing)
 //       countdown a=seconds (while unlocked: 3-2-1 before a held fist locks; 0 = cancelled)
 //       servo a=angle (tuning only: lock/servo_test.py)
 //
@@ -21,7 +23,11 @@
 //   locked    scrolls "LOCKED"          unlocked  scrolls "UNLOCKED"
 //   button    all on briefly, then 3 empty slots; each accepted digit fills a slot with a dot
 //   wrong     an X flashes 3 times       lockout   seconds left, LED4 blinking red fast
-//   fist held while unlocked: 3, 2, 1, then locked
+//   fist held while unlocked: 3, 2, 1, then locked (the only way to lock it again)
+//
+// Failsafe: unlocked with no command at all from the app for APP_SILENT_MS (the app
+// crashed, or the Mac/MQTT link is down) -> relock. The app sends "alive" every 5 s,
+// so in normal use this never fires.
 //
 // Libraries: Arduino_RouterBridge, Servo >= 1.3.0, Arduino_LED_Matrix (with the board package).
 
@@ -48,9 +54,9 @@ const unsigned long FLASH_MS = 250;           // whole matrix on after the butto
 const unsigned long X_ON_MS = 300, X_OFF_MS = 200;
 const int X_FLASHES = 3;
 const unsigned long BLINK_MS = 100;           // lockout red blink half-period
-const unsigned long DEFAULT_RELOCK_MS = 120000;  // backup: unlocked never lasts longer than this
+const unsigned long APP_SILENT_MS = 30000;        // failsafe: unlocked + no word from the app -> relock
 const unsigned long COUNTDOWN_STALE_MS = 1500;   // no countdown update for this long: back to UNLOCKED
-const unsigned long ARMED_SAFETY_MS = 15000;  // reading with no word from the Mac: back to locked
+const unsigned long ARMED_SAFETY_MS = 15000;  // reading with no word from the app: back to locked
 const unsigned long HEARTBEAT_MS = 30000;
 
 // Types used by function signatures: declared before any function, because the
@@ -203,7 +209,7 @@ void lock_cmd(String name, int a, int b) {
 // ---------- state machine ----------
 const char *MODE_NAMES[] = {"locked", "reading", "reading", "unlocked", "denied", "lockout"};
 Mode mode = M_LOCKED;
-unsigned long modeStart = 0, relockAt = 0, lockoutEnd = 0, lastWordMs = 0;
+unsigned long modeStart = 0, lockoutEnd = 0, lastWordMs = 0;
 unsigned long pendingLockoutMs = 0;  // a lockout that arrived during the X animation
 int lastShownSecond = -1;
 int countdownShown = 0;  // the fist-lock countdown number on the matrix (0 = none, scrolling UNLOCKED)
@@ -253,10 +259,11 @@ void setMode(Mode m) {
 }
 
 void runCommand(const Cmd &c) {
+  lastWordMs = millis();
+  if (!strcmp(c.name, "alive")) return;  // heartbeat only: no log line every 5 s
   char line[64];
   snprintf(line, sizeof(line), "cmd %s a=%d b=%d (mode %s)", c.name, c.a, c.b, MODE_NAMES[mode]);
   status(line);
-  lastWordMs = millis();
   if (!strcmp(c.name, "armed")) {
     bool fresh = mode == M_FLASH || (mode == M_READING && slotValue[0] == 0);
     if (!fresh) setMode(M_FLASH);
@@ -266,8 +273,7 @@ void runCommand(const Cmd &c) {
       if (mode == M_READING) drawSlots();
     }
   } else if (!strcmp(c.name, "unlock")) {
-    relockAt = millis() + (c.a > 0 ? (unsigned long)c.a * 1000 : DEFAULT_RELOCK_MS);
-    setMode(M_UNLOCKED);
+    setMode(M_UNLOCKED);  // until "locked" (a held fist), or the failsafe
   } else if (!strcmp(c.name, "deny")) {
     pendingLockoutMs = 0;
     setMode(M_DENIED);
@@ -312,8 +318,8 @@ void updateMode(unsigned long now) {
         scrollPos = (scrollPos + 1) % scrollLen;
         drawScroll();
       }
-      if (mode == M_UNLOCKED && elapsed(relockAt, now) >= 0) {
-        status("relocking");
+      if (mode == M_UNLOCKED && elapsed(lastWordMs, now) >= (long)APP_SILENT_MS) {
+        status("failsafe: no word from the app for 30 s, relocking");
         setMode(M_LOCKED);
       }
       break;
@@ -322,7 +328,7 @@ void updateMode(unsigned long now) {
       break;
     case M_READING:
       if (elapsed(lastWordMs, now) >= (long)ARMED_SAFETY_MS) {
-        status("no word from the Mac: back to locked");
+        status("no word from the app: back to locked");
         setMode(M_LOCKED);
       }
       break;

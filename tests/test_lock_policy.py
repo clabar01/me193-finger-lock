@@ -48,7 +48,7 @@ class Driver:
 
 
 class PolicyTests(unittest.TestCase):
-    def test_correct_code_unlocks_then_relocks(self):
+    def test_correct_code_unlocks_and_stays_unlocked(self):
         d = Driver()
         d.press()
         d.show(0)
@@ -56,11 +56,10 @@ class PolicyTests(unittest.TestCase):
         self.assertEqual(d.digits(), [2, 4, 1])
         self.assertIn("unlock", d.kinds())
         self.assertEqual(d.policy.state, UNLOCKED)
-        d.wait(119)
+        d.wait(3600)                     # no timer: only a held fist locks it (test_fist_lock.py)
         self.assertEqual(d.policy.state, UNLOCKED)
-        d.wait(1)
-        self.assertEqual(d.policy.state, LOCKED)
-        self.assertEqual(d.kinds()[-1], "relocked")
+        self.assertIsNone(d.policy.seconds_left(d.now))
+        self.assertEqual(d.kinds()[-1], "unlock")
 
     def test_wrong_code_denies(self):
         d = Driver()

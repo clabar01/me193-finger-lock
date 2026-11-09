@@ -22,7 +22,7 @@ def softmax(logits):
 
 
 def policy_config(config):
-    keys = ("stable_frames", "min_confidence", "timeout_s", "max_wrong", "lockout_s", "relock_s",
+    keys = ("stable_frames", "min_confidence", "timeout_s", "max_wrong", "lockout_s",
             "fist_lock_s", "fist_grace_s", "fist_gap_s")  # optional: missing ones keep PolicyConfig's default
     return PolicyConfig(code=tuple(config["code"]), **{k: config[k] for k in keys if k in config})
 
@@ -47,6 +47,34 @@ class AttemptLog:
         return entry
 
 
+ALIVE_PERIOD_S = 5.0  # the sketch's failsafe relocks after 30 s without a word (6 missed)
+
+
+class Heartbeat:
+    """Says when to send the sketch "alive", so its failsafe never fires while the app runs."""
+
+    def __init__(self, period=ALIVE_PERIOD_S):
+        self.period, self.last = period, None
+
+    def due(self, now):
+        if self.last is None or now - self.last >= self.period:
+            self.last = now
+            return True
+        return False
+
+
+class BoardWatch:
+    """Spots the board going from unlocked to locked on its own (the sketch's failsafe)."""
+
+    def __init__(self):
+        self.last = None
+
+    def relocked(self, name):
+        relocked = self.last == "unlocked" and name == "locked"
+        self.last = name
+        return relocked
+
+
 def handle_events(events, now, send, log, config):
     """Send each policy event to the board with send(cmd, a, b) and log finished attempts.
 
@@ -63,7 +91,7 @@ def handle_events(events, now, send, log, config):
             lines.append(f"digit {e.data['index']}: {e.data['value']} ({e.data['confidence']:.0%})")
         elif e.kind in ("unlock", "deny", "timeout", "restarted"):
             if e.kind == "unlock":
-                send("unlock", int(config["relock_s"]))
+                send("unlock")
             elif e.kind in ("deny", "timeout"):
                 send(e.kind)
             records.append(e.data["attempt"])
@@ -85,10 +113,11 @@ def handle_events(events, now, send, log, config):
         elif e.kind == "countdown_cancel":
             send("countdown", 0)
             lines.append("fist released: countdown cancelled")
-        elif e.kind in ("fist_lock", "relocked"):
+        elif e.kind == "fist_lock":
             send("locked", 1)  # a=1: announce it ("Locked" on the speaker)
-            lines.append(f"locked by a fist held {e.data['held_s']} s" if e.kind == "fist_lock"
-                         else "unlocked too long: locked (backup)")
+            lines.append(f"locked by a fist held {e.data['held_s']} s")
+        elif e.kind == "board_relocked":
+            lines.append("the board relocked by itself (failsafe: it heard nothing from this app)")
         elif e.kind == "lockout_over":
             lines.append("lockout over")
     for i, record in enumerate(records):  # a lockout belongs to the last attempt of the frame

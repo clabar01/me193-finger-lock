@@ -11,12 +11,13 @@ Topics (public broker, as in the earlier ME193 projects):
 Commands (a, b are integers):
     armed    show the 3 empty slots, LED3 blue
     digit    a = slot 1-3, b = the digit (0 unless the Mac sends real digits for debugging)
-    unlock   servo to unlocked, LED3 green, relock after a seconds
+    unlock   servo to unlocked, LED3 green; stays unlocked until a "locked" (a held fist)
     deny     flash an X 3 times, LED4 red
     timeout  back to locked
     lockout  a = seconds of lockout
     locked   back to locked now (the Mac relocks or resynchronizes); a = 1: announce it
-             (a fist held 3 s, or the 2 min backup relock: "Locked" on the speaker)
+             (a fist held 3 s: "Locked" on the speaker)
+    alive    every 5 s from the app; with none for 30 s the sketch relocks (failsafe)
     countdown  while unlocked, a = seconds (3, 2, 1) before a held fist locks; 0 = cancelled
     servo    a = angle 0-180, for tuning the latch (lock/servo_test.py); the mode doesn't change
 
@@ -37,7 +38,7 @@ import time
 BROKER = ("broker.hivemq.com", 1883)
 TOPIC_PREFIX = "ME193/ceci/lock"
 MAX_AGE_MS = 15_000
-COMMANDS = ("armed", "digit", "unlock", "deny", "timeout", "lockout", "locked", "countdown", "servo")
+COMMANDS = ("armed", "digit", "unlock", "deny", "timeout", "lockout", "locked", "countdown", "alive", "servo")
 
 
 def topics(prefix=TOPIC_PREFIX):

@@ -32,8 +32,9 @@ Rules:
     from the fist's first frame. Fists in the first fist_grace_s (2 s) after unlocking are
     ignored, so curling the hand after the last digit doesn't relock. If the fist is gone
     (hand open, no hand, or unsure) for more than fist_gap_s, the countdown is cancelled.
-  * Backup: unlocked never lasts more than relock_s (2 min); then it locks by itself
-    (the board also relocks itself after that time).
+  * Holding a fist is the only way to lock again: unlocked has no timer. (Failsafe: the
+    sketch relocks by itself if the app stops talking to it for 30 s, i.e. a crash or a
+    lost link, never in normal use; board_locked() then puts the policy back in step.)
   * A button press while reading restarts the attempt.
 """
 from dataclasses import dataclass, field
@@ -49,7 +50,6 @@ class PolicyConfig:
     timeout_s: float = 10.0
     max_wrong: int = 3
     lockout_s: float = 30.0
-    relock_s: float = 120.0
     fist_lock_s: float = 3.0
     fist_grace_s: float = 2.0
     fist_gap_s: float = 0.3
@@ -67,7 +67,7 @@ class PolicyConfig:
 
 @dataclass
 class Event:
-    kind: str  # armed, cleared, digit, unlock, deny, lockout, lockout_over, timeout, relocked, restarted, ignored,
+    kind: str  # armed, cleared, digit, unlock, deny, lockout, lockout_over, timeout, restarted, ignored, board_relocked,
     #            countdown (seconds), countdown_cancel, fist_lock
     data: dict = field(default_factory=dict)
 
@@ -88,7 +88,7 @@ class LockPolicy:
         self.config = config
         self.state = LOCKED
         self.wrong_in_a_row = 0
-        self.until = None  # end of the unlocked or lockout period
+        self.until = None  # end of the lockout
         self.attempt = None
         self.unlocked_at = None
         self._reset_streak()
@@ -149,14 +149,10 @@ class LockPolicy:
         return events
 
     def tick(self, now):
-        """Timers: attempt timeout, end of unlocked period, end of lockout."""
+        """Timers: attempt timeout, fist-countdown cancel, end of lockout. (Unlocked has no timer.)"""
         if self.state == READING and now - self.last_progress >= self.config.timeout_s:
             self.state = LOCKED
             return [self._finish(now, "timeout")]
-        if self.state == UNLOCKED and now >= self.until:
-            self.state, self.until = LOCKED, None
-            self._reset_fist()
-            return [Event("relocked")]
         if self.state == UNLOCKED and self.fist_counting and now - self.fist_last > self.config.fist_gap_s:
             self._reset_fist()
             return [Event("countdown_cancel")]
@@ -166,15 +162,23 @@ class LockPolicy:
             return [Event("lockout_over")]
         return []
 
-    # ----- for display -----
-
     def seconds_left(self, now):
-        """Seconds until timeout (reading), relock (unlocked) or the end of the lockout; else None."""
+        """Seconds until timeout (reading) or the end of the lockout; else None (unlocked has no timer)."""
         if self.state == READING:
             return max(0.0, self.config.timeout_s - (now - self.last_progress))
         if self.until is not None:
             return max(0.0, self.until - now)
         return None
+
+    def board_locked(self, now):
+        """The board relocked by itself (its failsafe: no word from the app). Follow it."""
+        if self.state != UNLOCKED:
+            return []
+        self.state, self.unlocked_at = LOCKED, None
+        self._reset_fist()
+        return [Event("board_relocked")]
+
+    # ----- for display -----
 
     def fist_countdown(self, now):
         """Seconds left before a held fist locks (unlocked, countdown running); else None."""
@@ -230,7 +234,7 @@ class LockPolicy:
         entered = tuple(self.digits)
         if entered == self.config.code:
             self.wrong_in_a_row = 0
-            self.state, self.until = UNLOCKED, now + self.config.relock_s
+            self.state, self.until = UNLOCKED, None
             self.unlocked_at = now
             self._reset_fist()
             return [self._finish(now, "unlock")]

@@ -32,7 +32,7 @@ from board_camera import CameraError, open_camera
 from sounds import Sounds
 from common.lock_policy import LockPolicy, READING, UNLOCKED, frame_reading
 from common.lock_runtime import (AttemptLog, STATE_COLORS, handle_events, policy_config, reading_text, softmax,
-                                 unlocked_hint)
+                                 unlocked_hint, BoardWatch, Heartbeat)
 from common.no_hand import EmptySquareCheck
 from common.preprocess import crop_and_resize, load_roi, preprocess, roi_to_pixels
 from common.red_square import box_to_roi, find_red_square
@@ -166,6 +166,9 @@ class LocalLock:
         self.log = AttemptLog(LOGS / "lock_attempts.jsonl")
         self.eval = LiveEval(settings["stable_frames"], settings["min_confidence"], LOGS / "live_eval.jsonl")
         self.presses = queue.Queue()
+        self.board_states = queue.Queue()  # from the sketch (Bridge thread)
+        self.watch = BoardWatch()
+        self.heartbeat = Heartbeat()
         self.lock = threading.Lock()
         self.frame = None
         self.jpeg = None
@@ -232,8 +235,13 @@ class LocalLock:
         diff, no_hand = self.check.check(crop)
         value, confidence = frame_reading(probs, no_hand)
         events += self.policy.update(now, value, confidence)
+        while not self.board_states.empty():
+            if self.watch.relocked(self.board_states.get()):
+                events += self.policy.board_locked(now)
         for line in handle_events(events, now, bridge_send, self.log, self.settings):
             logger.info(line)
+        if self.heartbeat.due(now):  # keeps the sketch's failsafe from relocking
+            bridge_send("alive")
         self.eval.feed(now, value, confidence, no_hand)
         self.reading = (value if not no_hand else None, confidence, no_hand, diff)
         self.process_ms.append(1000 * (time.perf_counter() - t0))
@@ -349,6 +357,7 @@ def run():
 
     def lock_state(name):
         logger.info(f"board state: {name}")
+        lock.board_states.put(name)
 
     def lock_status(text):
         logger.info(f"sketch: {text}")

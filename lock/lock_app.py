@@ -36,7 +36,8 @@ import lock_protocol as proto  # noqa: E402
 from common.camera import CameraError, lock_and_report, open_configured_camera, restore_auto  # noqa: E402
 from common.draw import label  # noqa: E402
 from common.lock_policy import LOCKED, LOCKOUT, READING, UNLOCKED, LockPolicy, frame_reading  # noqa: E402
-from common.lock_runtime import AttemptLog, STATE_COLORS, policy_config, reading_text, softmax, unlocked_hint  # noqa: E402
+from common.lock_runtime import (AttemptLog, STATE_COLORS, BoardWatch, Heartbeat, policy_config,  # noqa: E402
+                                 reading_text, softmax, unlocked_hint)
 from common.lock_runtime import handle_events as _handle_events  # noqa: E402
 from common.no_hand import EmptySquareCheck  # noqa: E402
 from common.preprocess import ROI_PATH, crop_and_resize, load_roi, preprocess, roi_to_pixels  # noqa: E402
@@ -81,6 +82,7 @@ class Link:
         self.signer = proto.Signer(secret)
         self.topics = proto.topics()
         self.buttons = queue.Queue()
+        self.states = queue.Queue()  # board states as they arrive (for the failsafe check)
         self.connected = False
         self.board = {"online": False, "state": "unknown"}
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=f"mac-lock-{secrets.token_hex(3)}")
@@ -100,6 +102,7 @@ class Link:
         elif msg.topic == self.topics["board"]:
             try:
                 self.board = json.loads(msg.payload)
+                self.states.put(self.board.get("state"))
             except ValueError:
                 pass
 
@@ -194,6 +197,7 @@ def main(argv=None):
         print(f"Camera: {settings['camera']}, exposure {settings['exposure']}; model mode {mode!r}; "
               f"MQTT {proto.BROKER[0]} {proto.TOPIC_PREFIX}; log {LOG.relative_to(ROOT)}")
         link.send("locked")  # start from the same state on both sides
+        watch, heartbeat = BoardWatch(), Heartbeat()
         while True:
             ok, frame = cap.read()
             if not ok:
@@ -220,8 +224,13 @@ def main(argv=None):
             diff, no_hand = check.check(crop)
             value, confidence = frame_reading(probs, no_hand)
             events += policy.update(now, value, confidence)
+            while not link.states.empty():
+                if watch.relocked(link.states.get()):
+                    events += policy.board_locked(now)
             for line in handle_events(events, now, link, log, config, policy):
                 print(f"{datetime.now():%H:%M:%S}  {line}")
+            if heartbeat.due(now):  # keeps the sketch's failsafe from relocking
+                link.send("alive")
 
             box = roi_to_pixels(roi, frame.shape[1], frame.shape[0])
             cv2.imshow(WINDOW, draw(frame, box, policy, (value, confidence, no_hand), diff, check.threshold,

@@ -78,7 +78,12 @@ python lock/fake_board.py          # optional: stand-in for AirFour (Enter = but
 
 Press the arcade button with the square empty (that frame is the no-hand snapshot), then
 show the digits with a closed fist between them. An empty square is "no hand": it pauses
-reading but does not separate digits. Rules are in
+reading but does not separate digits. Once unlocked it stays unlocked: the only way to
+lock it again is to hold a closed fist in the square for 3 s (3-2-1 on the matrix, a beep
+each second, then "Locked"; fists in the first 2 s after unlocking are ignored, and opening
+the hand cancels). There is no relock timer. Failsafe: the app sends the sketch "alive"
+every 5 s, and the sketch relocks by itself only after 30 s with no word from the app (a
+crash or a lost link), never in normal use. Rules are in
 `common/lock_policy.py`; settings (frames, confidence, timeouts) in `config/lock.json`;
 servo angles and `DEBUG` at the top of `board/sketch/sketch.ino`. Attempts are logged
 to `logs/lock_attempts.jsonl`. `config/lock.json`, the board's `lock_secret.txt` and

@@ -3,7 +3,7 @@
     digit accepted -> beep.wav     unlock -> granted.wav ("Access granted")
     wrong code     -> intruder.wav (alarm + "Intruder detected")
     fist countdown -> beep.wav each second (3, 2, 1)
-    locked again   -> locked.wav ("Locked"; after a held fist or the backup relock)
+    locked again   -> locked.wav ("Locked"; after a fist held 3 s)
 
 The App Lab container already has the host's PipeWire socket (/run/user/1000/pipewire-0)
 and pw-play, so the app plays the files itself. If data/speaker.json holds the speaker's

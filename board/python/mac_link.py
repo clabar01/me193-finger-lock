@@ -52,7 +52,8 @@ def on_message(client, userdata, msg):
             return
         state["last_ts_ms"] = cmd["ts_ms"]
     lag = proto.now_ms() - cmd["ts_ms"]
-    logger.info(f"cmd {cmd['cmd']} a={cmd['a']} b={cmd['b']} ({lag} ms after the Mac sent it)")
+    if cmd["cmd"] != "alive":  # every 5 s: not worth a log line
+        logger.info(f"cmd {cmd['cmd']} a={cmd['a']} b={cmd['b']} ({lag} ms after the Mac sent it)")
     Bridge.call("lock_cmd", cmd["cmd"], cmd["a"], cmd["b"])
     sounds.on_command(cmd["cmd"], cmd["a"], cmd["b"])
 
