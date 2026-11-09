@@ -15,7 +15,9 @@ Commands (a, b are integers):
     deny     flash an X 3 times, LED4 red
     timeout  back to locked
     lockout  a = seconds of lockout
-    locked   back to locked now (the Mac relocks or resynchronizes)
+    locked   back to locked now (the Mac relocks or resynchronizes); a = 1: announce it
+             (a fist held 3 s, or the 2 min backup relock: "Locked" on the speaker)
+    countdown  while unlocked, a = seconds (3, 2, 1) before a held fist locks; 0 = cancelled
     servo    a = angle 0-180, for tuning the latch (lock/servo_test.py); the mode doesn't change
 
 The broker is public, so anyone can publish to these topics. Every command
@@ -35,7 +37,7 @@ import time
 BROKER = ("broker.hivemq.com", 1883)
 TOPIC_PREFIX = "ME193/ceci/lock"
 MAX_AGE_MS = 15_000
-COMMANDS = ("armed", "digit", "unlock", "deny", "timeout", "lockout", "locked", "servo")
+COMMANDS = ("armed", "digit", "unlock", "deny", "timeout", "lockout", "locked", "countdown", "servo")
 
 
 def topics(prefix=TOPIC_PREFIX):

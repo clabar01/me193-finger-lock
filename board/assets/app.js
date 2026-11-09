@@ -14,6 +14,7 @@ function render(s) {
   $("state").style.color = s.state_color;
   $("slots").textContent = s.slots.join(" ");
   $("hint").textContent = s.hint;
+  $("hint").classList.toggle("countdown", s.fist_countdown !== null && s.fist_countdown !== undefined);
   $("reading").textContent = s.reading;
   $("reading").style.color = s.reading_color;
   const st = s.stability;

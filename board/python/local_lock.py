@@ -30,8 +30,9 @@ from arduino.app_utils import App, Bridge, Logger
 
 from board_camera import CameraError, open_camera
 from sounds import Sounds
-from common.lock_policy import LockPolicy, READING, frame_reading
-from common.lock_runtime import AttemptLog, STATE_COLORS, handle_events, policy_config, reading_text, softmax
+from common.lock_policy import LockPolicy, READING, UNLOCKED, frame_reading
+from common.lock_runtime import (AttemptLog, STATE_COLORS, handle_events, policy_config, reading_text, softmax,
+                                 unlocked_hint)
 from common.no_hand import EmptySquareCheck
 from common.preprocess import crop_and_resize, load_roi, preprocess, roi_to_pixels
 from common.red_square import box_to_roi, find_red_square
@@ -266,10 +267,14 @@ class LocalLock:
         hint = ""
         if self.policy.state == READING:
             hint = "make a fist to separate" if self.policy.need_clear else f"show digit {len(digits) + 1} of 3"
+        elif self.policy.state == UNLOCKED:
+            hint = unlocked_hint(self.policy, now)
         left = self.policy.seconds_left(now)
+        fist = self.policy.fist_countdown(now)
         return {
             "state": self.policy.state, "state_color": hex_color(STATE_COLORS[self.policy.state]),
-            "seconds_left": None if left is None else round(left, 1), "slots": shown + ["_"] * (3 - len(shown)),
+            "seconds_left": None if left is None else round(left, 1),
+            "fist_countdown": None if fist is None else round(fist, 1), "slots": shown + ["_"] * (3 - len(shown)),
             "hint": hint, "reading": text, "reading_color": hex_color(color),
             "stability": {"value": "fist" if streak_value == 0 else streak_value, "count": min(streak, needed), "needed": needed},
             "no_hand_diff": None if diff is None else round(diff, 1), "threshold": self.check.threshold,

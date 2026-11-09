@@ -36,7 +36,7 @@ import lock_protocol as proto  # noqa: E402
 from common.camera import CameraError, lock_and_report, open_configured_camera, restore_auto  # noqa: E402
 from common.draw import label  # noqa: E402
 from common.lock_policy import LOCKED, LOCKOUT, READING, UNLOCKED, LockPolicy, frame_reading  # noqa: E402
-from common.lock_runtime import AttemptLog, STATE_COLORS, policy_config, reading_text, softmax  # noqa: E402
+from common.lock_runtime import AttemptLog, STATE_COLORS, policy_config, reading_text, softmax, unlocked_hint  # noqa: E402
 from common.lock_runtime import handle_events as _handle_events  # noqa: E402
 from common.no_hand import EmptySquareCheck  # noqa: E402
 from common.preprocess import ROI_PATH, crop_and_resize, load_roi, preprocess, roi_to_pixels  # noqa: E402
@@ -131,6 +131,10 @@ def draw(frame, box, policy, reading, diff, threshold, link, mask, ms, now):
         label(panel, hint, (16, 134), 0.6, (255, 160, 40))
     elif state == LOCKED:
         label(panel, "press the button to start", (16, 134), 0.6)
+    elif state == UNLOCKED:
+        hint = unlocked_hint(policy, now)
+        label(panel, hint, (16, 134), 0.8 if hint.startswith("LOCKING") else 0.6,
+              (0, 200, 255) if hint.startswith("LOCKING") else (0, 220, 0), 2 if hint.startswith("LOCKING") else 1)
 
     text, text_color = reading_text(value, confidence, no_hand, policy.config.min_confidence)
     label(panel, text, (16, 180), 0.7, text_color, 2)

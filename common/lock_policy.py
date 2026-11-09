@@ -10,7 +10,7 @@ for the app to act on (send to the board, log, draw).
     events = policy.tick(now)                            # timers, if no frame arrived
 
 Rules:
-  * The code is 3 digits from 1 to 5 (config/lock.json).
+  * The code is 3 different digits from 1 to 5 (config/lock.json), e.g. 2-4-1, not 2-2-4.
   * A reading is stable when the same value comes N frames in a row (stable_frames),
     each with confidence of at least min_confidence. A frame below the threshold
     breaks the streak.
@@ -27,7 +27,13 @@ Rules:
   * After the last digit: unlock if it matches, otherwise deny. max_wrong wrong
     codes in a row: lockout for lockout_s; button presses are ignored until it ends.
     A correct code resets the count.
-  * Unlocked lasts relock_s, then the lock is locked again (the board also relocks itself).
+  * While unlocked, a fist held for fist_lock_s (3 s) locks again: the countdown starts
+    once the fist is stable (stable_frames confident 0s with a hand present) and is timed
+    from the fist's first frame. Fists in the first fist_grace_s (2 s) after unlocking are
+    ignored, so curling the hand after the last digit doesn't relock. If the fist is gone
+    (hand open, no hand, or unsure) for more than fist_gap_s, the countdown is cancelled.
+  * Backup: unlocked never lasts more than relock_s (2 min); then it locks by itself
+    (the board also relocks itself after that time).
   * A button press while reading restarts the attempt.
 """
 from dataclasses import dataclass, field
@@ -43,12 +49,17 @@ class PolicyConfig:
     timeout_s: float = 10.0
     max_wrong: int = 3
     lockout_s: float = 30.0
-    relock_s: float = 10.0
+    relock_s: float = 120.0
+    fist_lock_s: float = 3.0
+    fist_grace_s: float = 2.0
+    fist_gap_s: float = 0.3
 
     def __post_init__(self):
         code = tuple(int(d) for d in self.code)
         if len(code) != 3 or any(d not in range(1, 6) for d in code):
             raise ValueError(f"the code must be 3 digits from 1 to 5, got {self.code}")
+        if len(set(code)) != len(code):
+            raise ValueError(f"the 3 code digits must all be different, got {self.code}")
         object.__setattr__(self, "code", code)
         if self.stable_frames < 1:
             raise ValueError("stable_frames must be at least 1")
@@ -56,7 +67,8 @@ class PolicyConfig:
 
 @dataclass
 class Event:
-    kind: str  # armed, cleared, digit, unlock, deny, lockout, lockout_over, timeout, relocked, restarted, ignored
+    kind: str  # armed, cleared, digit, unlock, deny, lockout, lockout_over, timeout, relocked, restarted, ignored,
+    #            countdown (seconds), countdown_cancel, fist_lock
     data: dict = field(default_factory=dict)
 
 
@@ -78,7 +90,9 @@ class LockPolicy:
         self.wrong_in_a_row = 0
         self.until = None  # end of the unlocked or lockout period
         self.attempt = None
+        self.unlocked_at = None
         self._reset_streak()
+        self._reset_fist()
 
     # ----- inputs -----
 
@@ -100,6 +114,8 @@ class LockPolicy:
     def update(self, now, value, confidence):
         """One camera frame's reading: value 0 (fist) to 5, or None for no hand / no reading. Returns events."""
         events = self.tick(now)
+        if self.state == UNLOCKED:
+            return events + self._fist_lock(now, value, confidence)
         if self.state != READING:
             return events
         if value is None or confidence < self.config.min_confidence:
@@ -139,7 +155,11 @@ class LockPolicy:
             return [self._finish(now, "timeout")]
         if self.state == UNLOCKED and now >= self.until:
             self.state, self.until = LOCKED, None
+            self._reset_fist()
             return [Event("relocked")]
+        if self.state == UNLOCKED and self.fist_counting and now - self.fist_last > self.config.fist_gap_s:
+            self._reset_fist()
+            return [Event("countdown_cancel")]
         if self.state == LOCKOUT and now >= self.until:
             self.state, self.until = LOCKED, None
             self.wrong_in_a_row = 0
@@ -156,6 +176,12 @@ class LockPolicy:
             return max(0.0, self.until - now)
         return None
 
+    def fist_countdown(self, now):
+        """Seconds left before a held fist locks (unlocked, countdown running); else None."""
+        if self.state != UNLOCKED or not self.fist_counting:
+            return None
+        return max(0.0, self.config.fist_lock_s - (now - self.fist_first))
+
     def stability(self):
         """(value, frames so far, frames needed) of the current streak."""
         return self.streak_value, self.streak_len, self.config.stable_frames
@@ -165,11 +191,48 @@ class LockPolicy:
     def _reset_streak(self):
         self.streak_value, self.streak_len, self.streak_confidence = None, 0, 0.0
 
+    def _reset_fist(self):
+        self.fist_first = self.fist_last = None  # first and latest fist frame of the current hold
+        self.fist_frames = 0
+        self.fist_counting = False  # the hold became stable: countdown running
+        self.fist_shown = None      # the last whole second announced (3, 2, 1)
+
+    def _fist_lock(self, now, value, confidence):
+        """While unlocked: count a held fist down to locking. tick() cancels it when the fist is gone."""
+        c = self.config
+        is_fist = value == 0 and confidence >= c.min_confidence
+        if now - self.unlocked_at < c.fist_grace_s:
+            return []  # grace period: fists don't count yet
+        if not is_fist:
+            if not self.fist_counting:
+                self._reset_fist()  # before it's stable, the fist must be unbroken (like a digit)
+            return []
+        if self.fist_first is None:
+            self.fist_first = now
+        self.fist_last = now
+        self.fist_frames += 1
+        if self.fist_frames >= c.stable_frames:
+            self.fist_counting = True
+        if not self.fist_counting:
+            return []
+        held = now - self.fist_first
+        if held >= c.fist_lock_s:
+            self.state, self.until, self.unlocked_at = LOCKED, None, None
+            self._reset_fist()
+            return [Event("fist_lock", {"held_s": round(held, 2)})]
+        left = int(-(-(c.fist_lock_s - held) // 1))  # ceil: 3, 2, 1
+        if left != self.fist_shown:
+            self.fist_shown = left
+            return [Event("countdown", {"seconds": left})]
+        return []
+
     def _judge(self, now):
         entered = tuple(self.digits)
         if entered == self.config.code:
             self.wrong_in_a_row = 0
             self.state, self.until = UNLOCKED, now + self.config.relock_s
+            self.unlocked_at = now
+            self._reset_fist()
             return [self._finish(now, "unlock")]
         self.wrong_in_a_row += 1
         events = [self._finish(now, "deny")]

@@ -2,6 +2,8 @@
 
     digit accepted -> beep.wav     unlock -> granted.wav ("Access granted")
     wrong code     -> intruder.wav (alarm + "Intruder detected")
+    fist countdown -> beep.wav each second (3, 2, 1)
+    locked again   -> locked.wav ("Locked"; after a held fist or the backup relock)
 
 The App Lab container already has the host's PipeWire socket (/run/user/1000/pipewire-0)
 and pw-play, so the app plays the files itself. If data/speaker.json holds the speaker's
@@ -26,6 +28,15 @@ FOR_COMMAND = {"digit": "beep.wav", "unlock": "granted.wav", "deny": "intruder.w
 PLAY_TIMEOUT_S = 8
 
 
+def sound_for(cmd, a=0):
+    """The sound file for a command sent to the sketch, or None."""
+    if cmd == "countdown":
+        return "beep.wav" if a > 0 else None
+    if cmd == "locked":
+        return "locked.wav" if a == 1 else None  # a = 0: startup or resync, no sound
+    return FOR_COMMAND.get(cmd)
+
+
 def speaker_target(path=SPEAKER_FILE):
     """PipeWire node name of the paired speaker, or None (use the default output)."""
     try:
@@ -45,7 +56,7 @@ class Sounds:
 
     def on_command(self, cmd, a=0, b=0):
         """Called with every command sent to the sketch; plays the matching sound, if any."""
-        name = FOR_COMMAND.get(cmd)
+        name = sound_for(cmd, a)
         if name:
             self.play(name)
 

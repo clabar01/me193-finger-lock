@@ -14,12 +14,14 @@
 //   Bridge.notify("lock_status", text)   log lines (also printed to Monitor as '#' lines)
 //   Bridge.provide("lock_cmd", cmd, a, b)  commands from the Mac (see python/lock_protocol.py):
 //       armed | digit a=slot b=value | unlock a=seconds | deny | timeout | lockout a=seconds | locked
+//       countdown a=seconds (while unlocked: 3-2-1 before a held fist locks; 0 = cancelled)
 //       servo a=angle (tuning only: lock/servo_test.py)
 //
 // Matrix (8 x 13):
 //   locked    scrolls "LOCKED"          unlocked  scrolls "UNLOCKED"
 //   button    all on briefly, then 3 empty slots; each accepted digit fills a slot with a dot
 //   wrong     an X flashes 3 times       lockout   seconds left, LED4 blinking red fast
+//   fist held while unlocked: 3, 2, 1, then locked
 //
 // Libraries: Arduino_RouterBridge, Servo >= 1.3.0, Arduino_LED_Matrix (with the board package).
 
@@ -46,7 +48,8 @@ const unsigned long FLASH_MS = 250;           // whole matrix on after the butto
 const unsigned long X_ON_MS = 300, X_OFF_MS = 200;
 const int X_FLASHES = 3;
 const unsigned long BLINK_MS = 100;           // lockout red blink half-period
-const unsigned long DEFAULT_RELOCK_MS = 10000;
+const unsigned long DEFAULT_RELOCK_MS = 120000;  // backup: unlocked never lasts longer than this
+const unsigned long COUNTDOWN_STALE_MS = 1500;   // no countdown update for this long: back to UNLOCKED
 const unsigned long ARMED_SAFETY_MS = 15000;  // reading with no word from the Mac: back to locked
 const unsigned long HEARTBEAT_MS = 30000;
 
@@ -203,11 +206,14 @@ Mode mode = M_LOCKED;
 unsigned long modeStart = 0, relockAt = 0, lockoutEnd = 0, lastWordMs = 0;
 unsigned long pendingLockoutMs = 0;  // a lockout that arrived during the X animation
 int lastShownSecond = -1;
+int countdownShown = 0;  // the fist-lock countdown number on the matrix (0 = none, scrolling UNLOCKED)
+unsigned long countdownMs = 0;
 bool xShown = false;     // whether the X is on during the wrong-code animation
 
 void setMode(Mode m) {
   Mode before = mode;
   mode = m;
+  countdownShown = 0;
   modeStart = millis();
   switch (m) {
     case M_LOCKED:
@@ -275,6 +281,13 @@ void runCommand(const Cmd &c) {
     }
   } else if (!strcmp(c.name, "timeout") || !strcmp(c.name, "locked")) {
     setMode(M_LOCKED);
+  } else if (!strcmp(c.name, "countdown")) {
+    if (mode == M_UNLOCKED) {
+      countdownShown = constrain(c.a, 0, 9);
+      countdownMs = millis();
+      if (countdownShown > 0) drawNumber(countdownShown);
+      else drawScroll();  // cancelled: back to scrolling UNLOCKED
+    }
   } else if (!strcmp(c.name, "servo")) {
     // Tuning only (lock/servo_test.py): move the latch without changing the mode.
     // The next mode change moves it back to LOCKED_ANGLE or UNLOCKED_ANGLE.
@@ -290,7 +303,11 @@ void updateMode(unsigned long now) {
   switch (mode) {
     case M_LOCKED:
     case M_UNLOCKED:
-      if (elapsed(lastScrollMs, now) >= (long)SCROLL_STEP_MS) {
+      if (countdownShown > 0 && elapsed(countdownMs, now) >= (long)COUNTDOWN_STALE_MS) {
+        countdownShown = 0;  // the countdown stopped without a cancel: show UNLOCKED again
+        drawScroll();
+      }
+      if (countdownShown == 0 && elapsed(lastScrollMs, now) >= (long)SCROLL_STEP_MS) {
         lastScrollMs = now;
         scrollPos = (scrollPos + 1) % scrollLen;
         drawScroll();

@@ -11,6 +11,7 @@ main { display: grid; grid-template-columns: minmax(320px, 640px) minmax(280px, 
 .state { font-size: 32px; font-weight: 700; }
 .slots { font-size: 36px; letter-spacing: 12px; font-family: ui-monospace, monospace; margin: 6px 0; }
 .hint { color: #f0a028; min-height: 20px; }
+.hint.countdown { color: #ffc800; font-size: 28px; font-weight: 700; }
 .reading { font-size: 22px; font-weight: 600; margin: 12px 0 6px; }
 .bar { height: 12px; background: #444; border-radius: 6px; overflow: hidden; }
 #bar-fill { height: 100%; width: 0; background: #aaa; transition: width 0.15s; }

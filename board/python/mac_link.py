@@ -54,7 +54,7 @@ def on_message(client, userdata, msg):
     lag = proto.now_ms() - cmd["ts_ms"]
     logger.info(f"cmd {cmd['cmd']} a={cmd['a']} b={cmd['b']} ({lag} ms after the Mac sent it)")
     Bridge.call("lock_cmd", cmd["cmd"], cmd["a"], cmd["b"])
-    sounds.on_command(cmd["cmd"])
+    sounds.on_command(cmd["cmd"], cmd["a"], cmd["b"])
 
 
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=f"airfour-lock-{proto.now_ms() % 100000}")

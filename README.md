@@ -70,7 +70,7 @@ empty the square and press Calibrate ROI. `--mode mac` switches back to the Mac 
 
 ```bash
 python lock/lock_app.py            # first run creates config/lock.json (code + signing secret)
-# set "code" in config/lock.json (3 digits, 1-5), then put the secret on the board:
+# set "code" in config/lock.json (3 different digits, 1-5), then put the secret on the board:
 BOARD=arduino@airfour.local board/deploy_board.sh --sketch
 python lock/lock_app.py            # B = button (backup), +/- = no-hand threshold, Q = quit
 python lock/fake_board.py          # optional: stand-in for AirFour (Enter = button)

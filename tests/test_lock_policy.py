@@ -56,7 +56,9 @@ class PolicyTests(unittest.TestCase):
         self.assertEqual(d.digits(), [2, 4, 1])
         self.assertIn("unlock", d.kinds())
         self.assertEqual(d.policy.state, UNLOCKED)
-        d.wait(10)
+        d.wait(119)
+        self.assertEqual(d.policy.state, UNLOCKED)
+        d.wait(1)
         self.assertEqual(d.policy.state, LOCKED)
         self.assertEqual(d.kinds()[-1], "relocked")
 
@@ -225,6 +227,12 @@ class PolicyTests(unittest.TestCase):
         for code in ((1, 2), (1, 2, 6), (0, 1, 2)):
             with self.assertRaises(ValueError):
                 PolicyConfig(code=code)
+
+    def test_code_digits_must_all_be_different(self):
+        for code in ((2, 2, 4), (1, 3, 1), (5, 5, 5)):
+            with self.assertRaisesRegex(ValueError, "different"):
+                PolicyConfig(code=code)
+        self.assertEqual(PolicyConfig(code=[5, 1, 3]).code, (5, 1, 3))
 
 
 class ProtocolTests(unittest.TestCase):

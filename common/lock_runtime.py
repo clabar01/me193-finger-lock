@@ -22,8 +22,9 @@ def softmax(logits):
 
 
 def policy_config(config):
-    keys = ("stable_frames", "min_confidence", "timeout_s", "max_wrong", "lockout_s", "relock_s")
-    return PolicyConfig(code=tuple(config["code"]), **{k: config[k] for k in keys})
+    keys = ("stable_frames", "min_confidence", "timeout_s", "max_wrong", "lockout_s", "relock_s",
+            "fist_lock_s", "fist_grace_s", "fist_gap_s")  # optional: missing ones keep PolicyConfig's default
+    return PolicyConfig(code=tuple(config["code"]), **{k: config[k] for k in keys if k in config})
 
 
 class AttemptLog:
@@ -78,11 +79,31 @@ def handle_events(events, now, send, log, config):
             lines.append(f"button ignored: {e.data['reason']} ({left:.0f} s left)")
         elif e.kind == "cleared":
             lines.append("fist: the next digit can come")
-        elif e.kind in ("relocked", "lockout_over"):
-            lines.append(e.kind.replace("_", " "))
+        elif e.kind == "countdown":
+            send("countdown", e.data["seconds"])
+            lines.append(f"fist: locking in {e.data['seconds']}")
+        elif e.kind == "countdown_cancel":
+            send("countdown", 0)
+            lines.append("fist released: countdown cancelled")
+        elif e.kind in ("fist_lock", "relocked"):
+            send("locked", 1)  # a=1: announce it ("Locked" on the speaker)
+            lines.append(f"locked by a fist held {e.data['held_s']} s" if e.kind == "fist_lock"
+                         else "unlocked too long: locked (backup)")
+        elif e.kind == "lockout_over":
+            lines.append("lockout over")
     for i, record in enumerate(records):  # a lockout belongs to the last attempt of the frame
         log.write(record, now, extra if i == len(records) - 1 else {})
     return lines
+
+
+def unlocked_hint(policy, now):
+    """The hint line while unlocked: the fist-lock countdown, the grace period, or how to lock."""
+    left = policy.fist_countdown(now)
+    if left is not None:
+        return f"LOCKING IN {max(1, -int(-left // 1))}  (open your hand to cancel)"
+    if policy.unlocked_at is not None and now - policy.unlocked_at < policy.config.fist_grace_s:
+        return "unlocked"
+    return f"hold a fist {policy.config.fist_lock_s:.0f} s to lock"
 
 
 CYAN, AMBER, WHITE, GREEN = (255, 200, 0), (0, 200, 255), (255, 255, 255), (0, 220, 0)

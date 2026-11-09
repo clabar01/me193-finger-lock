@@ -6,6 +6,7 @@
 beep.wav      short 1.2 kHz beep for each accepted digit
 granted.wav   rising two-note chime + "Access granted"   (macOS text-to-speech, `say`)
 intruder.wav  three falling alarm tones + "Intruder detected"
+locked.wav    falling two-note chime + "Locked"
 keepalive.wav 1 s of a very quiet 40 Hz tone (about -45 dBFS) that board/speaker/
               airfour-speaker.sh plays every 4 minutes so the JBL's auto-off doesn't trigger
 
@@ -70,6 +71,8 @@ def main(argv=None):
                                          speech("Access granted", args.voice)]))
     alarm = np.concatenate([np.concatenate([tone(f, 0.18), silence(0.05)]) for f in (1000, 800, 1000, 800)])
     write("intruder.wav", np.concatenate([alarm, silence(0.15), speech("Intruder detected", args.voice)]))
+    write("locked.wav", np.concatenate([tone(990, 0.15), tone(660, 0.25), silence(0.15),
+                                        speech("Locked", args.voice)]))
     write("keepalive.wav", tone(40, 1.0, volume=10 ** (-45 / 20), fade_s=0.2), normalize=False)
 
 
