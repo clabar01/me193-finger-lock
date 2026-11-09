@@ -32,7 +32,7 @@ from board_camera import CameraError, open_camera
 from sounds import Sounds
 from common.lock_policy import LockPolicy, READING, UNLOCKED, frame_reading
 from common.lock_runtime import (AttemptLog, STATE_COLORS, handle_events, policy_config, reading_text, softmax,
-                                 unlocked_hint, BoardWatch, Heartbeat)
+                                 unlocked_hint, BoardWatch, Heartbeat, check_settings)
 from common.no_hand import EmptySquareCheck
 from common.preprocess import crop_and_resize, load_roi, preprocess, roi_to_pixels
 from common.red_square import box_to_roi, find_red_square
@@ -153,6 +153,10 @@ class LiveEval:
 class LocalLock:
     def __init__(self):
         settings = json.loads(SETTINGS.read_text())
+        try:
+            check_settings(settings)
+        except ValueError as e:  # never refuse to run the lock; the extra keys are ignored
+            logger.warning(f"lock_settings.json: {e}; ignored")
         self.settings = settings
         self.policy = LockPolicy(policy_config(settings))
         self.check = EmptySquareCheck(settings["empty_threshold"])
@@ -241,8 +245,10 @@ class LocalLock:
         for line in handle_events(events, now, bridge_send, self.log, self.settings):
             logger.info(line)
         if any(e.kind in ("countdown", "countdown_cancel", "fist_lock") for e in events):
-            logger.info(f"  frame: reading {value} at {confidence:.0%}, no-hand diff {diff if diff is None else round(diff, 1)} "
-                        f"(threshold {self.check.threshold:.1f}; below it = empty square)")
+            edges = self.check.last_new_edges
+            logger.info(f"  frame: reading {value} at {confidence:.0%}, no-hand diff "
+                        f"{diff if diff is None else round(diff, 1)} (threshold {self.check.threshold:.1f}), new edges "
+                        f"{edges if edges is None else round(edges, 2)}% (hand needs >= {self.check.edge_min}%)")
         if self.heartbeat.due(now):  # keeps the sketch's failsafe from relocking
             bridge_send("alive")
         self.eval.feed(now, value, confidence, no_hand)
@@ -289,6 +295,8 @@ class LocalLock:
             "hint": hint, "reading": text, "reading_color": hex_color(color),
             "stability": {"value": "fist" if streak_value == 0 else streak_value, "count": min(streak, needed), "needed": needed},
             "no_hand_diff": None if diff is None else round(diff, 1), "threshold": self.check.threshold,
+            "new_edges": None if self.check.last_new_edges is None else round(self.check.last_new_edges, 2),
+            "edge_min": self.check.edge_min,
             "wrong_in_a_row": self.policy.wrong_in_a_row, "max_wrong": self.policy.config.max_wrong,
             "fps": round(fps, 1), "infer_ms": round(float(np.mean(self.infer_ms)), 2) if self.infer_ms else None,
             "process_ms": round(float(np.mean(self.process_ms)), 2) if self.process_ms else None,

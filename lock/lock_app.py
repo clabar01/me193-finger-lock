@@ -37,7 +37,7 @@ from common.camera import CameraError, lock_and_report, open_configured_camera, 
 from common.draw import label  # noqa: E402
 from common.lock_policy import LOCKED, LOCKOUT, READING, UNLOCKED, LockPolicy, frame_reading  # noqa: E402
 from common.lock_runtime import (AttemptLog, STATE_COLORS, BoardWatch, Heartbeat, policy_config,  # noqa: E402
-                                 reading_text, softmax, unlocked_hint)
+                                 reading_text, softmax, unlocked_hint, check_settings)
 from common.lock_runtime import handle_events as _handle_events  # noqa: E402
 from common.no_hand import EmptySquareCheck  # noqa: E402
 from common.preprocess import ROI_PATH, crop_and_resize, load_roi, preprocess, roi_to_pixels  # noqa: E402
@@ -182,6 +182,10 @@ def main(argv=None):
     input_name = session.get_inputs()[0].name
     mode = session.get_modelmeta().custom_metadata_map["preprocess_mode"]
     roi = load_roi()
+    try:
+        check_settings(config)
+    except ValueError as e:
+        print(f"config/lock.json: {e}; ignored")
     check = EmptySquareCheck(config["empty_threshold"])
     link = Link(config["secret"])
     log = Logger(LOG)
@@ -230,7 +234,8 @@ def main(argv=None):
             for line in handle_events(events, now, link, log, config, policy):
                 print(f"{datetime.now():%H:%M:%S}  {line}")
             if any(e.kind in ("countdown", "countdown_cancel", "fist_lock") for e in events):
-                print(f"          frame: reading {value} at {confidence:.0%}, no-hand diff {diff if diff is None else round(diff, 1)}")
+                print(f"          frame: reading {value} at {confidence:.0%}, no-hand diff "
+                      f"{diff if diff is None else round(diff, 1)}, new edges {check.last_new_edges}%")
             if heartbeat.due(now):  # keeps the sketch's failsafe from relocking
                 link.send("alive")
 

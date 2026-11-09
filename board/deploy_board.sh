@@ -30,6 +30,11 @@ done
 [[ "$MODE" == "local" || "$MODE" == "mac" ]] || { echo "give --mode local or --mode mac" >&2; exit 2; }
 [[ -f config/lock.json ]] || { echo "config/lock.json not found: run lock/lock_app.py once to create it" >&2; exit 1; }
 [[ -f models/finger_cnn.onnx ]] || { echo "models/finger_cnn.onnx not found" >&2; exit 1; }
+# config/lock.json is the only source of the board's settings. Refuse an old or wrong copy:
+# a timer relock setting (only a held fist may lock) or an unknown key stops the deploy.
+PY=.venv/bin/python; [[ -x $PY ]] || PY=python3
+$PY -c 'import json, sys; sys.path.insert(0, "."); from common.lock_runtime import check_settings
+check_settings(json.load(open("config/lock.json")))' || { echo "config/lock.json rejected: fix it, nothing was deployed" >&2; exit 1; }
 
 BOARD="${BOARD:-arduino@airfour.local}"
 APP="ArduinoApps/me193_lock"
@@ -48,8 +53,16 @@ scp -q board/assets/libs/socket.io.min.js "$BOARD:$APP/assets/libs/"
 if [[ $SKETCH == 1 ]]; then
   scp -q -r board/sketch "$BOARD:$APP/"
 fi
-python3 -c 'import json; c = json.load(open("config/lock.json")); c.pop("secret"); print(json.dumps(c, indent=2))' |
-  ssh "$BOARD" "umask 077; cat > $APP/python/lock_settings.json"
+# Show what changes on the board (never the code itself), then replace its settings.
+NEW_SETTINGS=$(python3 -c 'import json; c = json.load(open("config/lock.json")); c.pop("secret"); print(json.dumps(c, indent=2, sort_keys=True))')
+OLD_SETTINGS=$(ssh "$BOARD" "cat $APP/python/lock_settings.json 2>/dev/null" || true)
+python3 -c 'import json, sys
+new = json.loads(sys.argv[1]); old = json.loads(sys.argv[2]) if sys.argv[2].strip() else {}
+show = lambda k, v: "(hidden)" if k == "code" else v
+changes = [f"  {k}: {show(k, old.get(k, "-"))} -> {show(k, new.get(k, "(removed)"))}"
+           for k in sorted(set(new) | set(old)) if new.get(k) != old.get(k)]
+print("board settings: " + ("unchanged" if not changes else "changing\n" + "\n".join(changes)))' "$NEW_SETTINGS" "$OLD_SETTINGS"
+printf '%s\n' "$NEW_SETTINGS" | ssh "$BOARD" "umask 077; cat > $APP/python/lock_settings.json"
 python3 -c 'import json; print(json.load(open("config/lock.json"))["secret"])' |
   ssh "$BOARD" "umask 077; cat > $APP/python/lock_secret.txt"
 printf '{"mode": "%s"}\n' "$MODE" | ssh "$BOARD" "cat > $APP/python/board_config.json"

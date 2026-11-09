@@ -21,6 +21,26 @@ def softmax(logits):
     return e / e.sum()
 
 
+SETTING_KEYS = {
+    "code", "stable_frames", "min_confidence", "timeout_s", "max_wrong", "lockout_s",
+    "fist_lock_s", "fist_grace_s", "fist_gap_s", "fist_release_s", "empty_threshold", "send_digits", "secret",
+}
+# Anything that would make the lock relock on a timer. The only way to lock while unlocked is
+# a fist held fist_lock_s; tests/test_no_timer_relock.py fails if one of these comes back.
+TIMER_WORDS = ("relock", "auto_lock", "autolock", "unlock_s", "unlocked_s", "unlock_timeout")
+
+
+def check_settings(config):
+    """Raise ValueError for a timer-based relock setting or an unknown key (an old config copy)."""
+    timers = sorted(k for k in config if any(w in k.lower() for w in TIMER_WORDS))
+    if timers:
+        raise ValueError(f"timer relock settings are not allowed (only a held fist locks): {timers}")
+    unknown = sorted(set(config) - SETTING_KEYS)
+    if unknown:
+        raise ValueError(f"unknown settings (an old config?): {unknown}")
+    policy_config(config)  # the code and values must also be valid
+
+
 def policy_config(config):
     keys = ("stable_frames", "min_confidence", "timeout_s", "max_wrong", "lockout_s",
             "fist_lock_s", "fist_grace_s", "fist_gap_s", "fist_release_s")  # optional: missing ones keep PolicyConfig's default

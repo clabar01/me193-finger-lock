@@ -21,7 +21,8 @@ function render(s) {
   $("bar-fill").style.width = `${(100 * st.count) / st.needed}%`;
   $("bar-fill").style.background = st.count >= st.needed ? "#1baf7a" : "#aaa";
   $("stability").textContent = `stable: ${st.value ?? "-"} ${st.count}/${st.needed} frames`;
-  $("diff").textContent = s.no_hand_diff === null ? "no snapshot yet" : `${s.no_hand_diff} (threshold ${s.threshold})`;
+  $("diff").textContent = s.no_hand_diff === null ? "no snapshot yet"
+    : `${s.no_hand_diff} (threshold ${s.threshold}), new edges ${s.new_edges}% (hand needs ${s.edge_min}%)`;
   $("wrong").textContent = `${s.wrong_in_a_row} / ${s.max_wrong}`;
   $("fps").textContent = fmt(s.fps);
   $("infer").textContent = fmt(s.infer_ms, " ms", 2);

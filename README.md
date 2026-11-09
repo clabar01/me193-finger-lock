@@ -82,7 +82,12 @@ reading but does not separate digits. Once unlocked it stays unlocked: the only 
 lock it again is to hold a closed fist in the square for 3 s (3-2-1 on the matrix, a beep
 each second, then "Locked"). It must be a new fist: after unlocking, open your hand or take
 it away for 0.5 s first, so a hand left curled after the code never relocks it; fists in the
-first 2 s are ignored, and opening the hand cancels the countdown. There is no relock timer. Failsafe: the app sends the sketch "alive"
+first 2 s are ignored, and opening the hand cancels the countdown. There is no relock timer, and
+`tests/test_no_timer_relock.py` fails if one comes back (in the policy, the settings or the
+sketch). A "hand" needs two things against the button-press snapshot: a pixel difference
+above `empty_threshold` and new edges (`common/no_hand.py`), so an empty square whose light
+drifts never reads as a fist. `board/deploy_board.sh` refuses a `config/lock.json` with a
+timer or unknown setting and prints what it changes on the board. There is no relock timer. Failsafe: the app sends the sketch "alive"
 every 5 s, and the sketch relocks by itself only after 30 s with no word from the app (a
 crash or a lost link), never in normal use. Rules are in
 `common/lock_policy.py`; settings (frames, confidence, timeouts) in `config/lock.json`;
