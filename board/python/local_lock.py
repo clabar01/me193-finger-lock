@@ -240,6 +240,9 @@ class LocalLock:
                 events += self.policy.board_locked(now)
         for line in handle_events(events, now, bridge_send, self.log, self.settings):
             logger.info(line)
+        if any(e.kind in ("countdown", "countdown_cancel", "fist_lock") for e in events):
+            logger.info(f"  frame: reading {value} at {confidence:.0%}, no-hand diff {diff if diff is None else round(diff, 1)} "
+                        f"(threshold {self.check.threshold:.1f}; below it = empty square)")
         if self.heartbeat.due(now):  # keeps the sketch's failsafe from relocking
             bridge_send("alive")
         self.eval.feed(now, value, confidence, no_hand)

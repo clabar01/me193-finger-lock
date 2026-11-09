@@ -29,8 +29,10 @@ Rules:
     A correct code resets the count.
   * While unlocked, a fist held for fist_lock_s (3 s) locks again: the countdown starts
     once the fist is stable (stable_frames confident 0s with a hand present) and is timed
-    from the fist's first frame. Fists in the first fist_grace_s (2 s) after unlocking are
-    ignored, so curling the hand after the last digit doesn't relock. If the fist is gone
+    from the fist's first frame. It must be a new, deliberate fist: after unlocking, the
+    square must first be clear of fists (open hand or no hand) for fist_release_s (0.5 s),
+    so a hand left curled after the last digit never relocks; and fists in the first
+    fist_grace_s (2 s) after unlocking are ignored. If the fist is gone
     (hand open, no hand, or unsure) for more than fist_gap_s, the countdown is cancelled.
   * Holding a fist is the only way to lock again: unlocked has no timer. (Failsafe: the
     sketch relocks by itself if the app stops talking to it for 30 s, i.e. a crash or a
@@ -53,6 +55,7 @@ class PolicyConfig:
     fist_lock_s: float = 3.0
     fist_grace_s: float = 2.0
     fist_gap_s: float = 0.3
+    fist_release_s: float = 0.5
 
     def __post_init__(self):
         code = tuple(int(d) for d in self.code)
@@ -91,6 +94,7 @@ class LockPolicy:
         self.until = None  # end of the lockout
         self.attempt = None
         self.unlocked_at = None
+        self.fist_armed, self.clear_since = False, None
         self._reset_streak()
         self._reset_fist()
 
@@ -205,6 +209,14 @@ class LockPolicy:
         """While unlocked: count a held fist down to locking. tick() cancels it when the fist is gone."""
         c = self.config
         is_fist = value == 0 and confidence >= c.min_confidence
+        if not self.fist_armed:  # waiting for the square to be clear of fists after unlocking
+            if is_fist:
+                self.clear_since = None
+            elif self.clear_since is None:
+                self.clear_since = now
+            if self.clear_since is None or now - self.clear_since < c.fist_release_s:
+                return []
+            self.fist_armed = True
         if now - self.unlocked_at < c.fist_grace_s:
             return []  # grace period: fists don't count yet
         if not is_fist:
@@ -236,6 +248,7 @@ class LockPolicy:
             self.wrong_in_a_row = 0
             self.state, self.until = UNLOCKED, None
             self.unlocked_at = now
+            self.fist_armed, self.clear_since = False, None
             self._reset_fist()
             return [self._finish(now, "unlock")]
         self.wrong_in_a_row += 1

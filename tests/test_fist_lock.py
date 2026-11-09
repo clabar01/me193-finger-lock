@@ -103,16 +103,38 @@ class FistLockTests(unittest.TestCase):
 
     def test_fists_in_the_first_2_s_after_unlocking_are_ignored(self):
         d = Driver()
-        d.hold(0, 1.9)                  # curling the hand right after the last digit
+        d.hold(NO_HAND, 0.6)            # hand away after the last digit
+        d.hold(0, 1.2)                  # a fist back within 2 s of unlocking: ignored
         self.assertEqual(d.countdown(), [])
         self.assertIsNone(d.policy.fist_countdown(d.t))
-        self.assertEqual(d.policy.state, UNLOCKED)
+        self.assertLess(d.now, 2.0)
         d.hold(0, 2.9)                  # still a fist: the countdown starts only after the grace period
-        self.assertEqual(d.policy.state, UNLOCKED)
         self.assertEqual(d.countdown(), [3, 2, 1])
         d.hold(0, 0.5)
         self.assertEqual(d.policy.state, LOCKED)
         self.assertGreater(d.now, 2.0 + 3.0)
+
+    def test_hand_left_curled_after_the_code_never_locks(self):
+        # The relocks seen on AirFour on 2026-11-09: a fist from the moment it unlocked.
+        d = Driver()
+        d.hold(0, 30)                   # curled hand stays in the square: no countdown at all
+        self.assertEqual((d.policy.state, d.countdown()), (UNLOCKED, []))
+        self.assertFalse(d.policy.fist_armed)
+        d.hold(3, 0.3)                  # opening the hand briefly isn't enough
+        d.hold(0, 5)
+        self.assertEqual((d.policy.state, d.countdown()), (UNLOCKED, []))
+        d.hold(3, 0.6)                  # opened for 0.5 s: now a new fist counts
+        self.assertTrue(d.policy.fist_armed)
+        d.hold(0, 3.2)
+        self.assertEqual(d.countdown(), [3, 2, 1])
+        self.assertEqual(d.policy.state, LOCKED)
+
+    def test_empty_square_also_arms_it(self):
+        d = Driver()
+        d.hold(0, 1.0)                  # curled after the last digit...
+        d.hold(NO_HAND, 0.6)            # ...then taken away
+        d.hold(0, 3.4)
+        self.assertEqual(d.policy.state, LOCKED)
 
     def test_no_timer_only_a_fist_locks(self):
         d = Driver()
@@ -145,7 +167,7 @@ class CommandTests(unittest.TestCase):
         sent = []
         log = type("Log", (), {"write": lambda *a: None})()
         handle_events(d.events, d.t, lambda cmd, a=0, b=0: sent.append((cmd, a)), log,
-                      {"send_digits": False, "relock_s": 120, "max_wrong": 3})
+                      {"send_digits": False, "max_wrong": 3})
         return sent
 
     def test_countdown_cancel_and_lock_commands_and_sounds(self):

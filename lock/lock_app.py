@@ -229,6 +229,8 @@ def main(argv=None):
                     events += policy.board_locked(now)
             for line in handle_events(events, now, link, log, config, policy):
                 print(f"{datetime.now():%H:%M:%S}  {line}")
+            if any(e.kind in ("countdown", "countdown_cancel", "fist_lock") for e in events):
+                print(f"          frame: reading {value} at {confidence:.0%}, no-hand diff {diff if diff is None else round(diff, 1)}")
             if heartbeat.due(now):  # keeps the sketch's failsafe from relocking
                 link.send("alive")
 

@@ -1,4 +1,4 @@
-"""Lock sounds on the Bluetooth speaker (JBL Flip 5), played through the host's PipeWire.
+"""Lock sounds on the Bluetooth speaker (a JBL; paired with board/speaker/pair_speaker.sh), played through the host's PipeWire.
 
     digit accepted -> beep.wav     unlock -> granted.wav ("Access granted")
     wrong code     -> intruder.wav (alarm + "Intruder detected")

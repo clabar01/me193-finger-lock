@@ -23,7 +23,7 @@ def softmax(logits):
 
 def policy_config(config):
     keys = ("stable_frames", "min_confidence", "timeout_s", "max_wrong", "lockout_s",
-            "fist_lock_s", "fist_grace_s", "fist_gap_s")  # optional: missing ones keep PolicyConfig's default
+            "fist_lock_s", "fist_grace_s", "fist_gap_s", "fist_release_s")  # optional: missing ones keep PolicyConfig's default
     return PolicyConfig(code=tuple(config["code"]), **{k: config[k] for k in keys if k in config})
 
 
@@ -132,6 +132,8 @@ def unlocked_hint(policy, now):
         return f"LOCKING IN {max(1, -int(-left // 1))}  (open your hand to cancel)"
     if policy.unlocked_at is not None and now - policy.unlocked_at < policy.config.fist_grace_s:
         return "unlocked"
+    if not policy.fist_armed:
+        return "open your hand or take it away, then hold a fist 3 s to lock"
     return f"hold a fist {policy.config.fist_lock_s:.0f} s to lock"
 
 
